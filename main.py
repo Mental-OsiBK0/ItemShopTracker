@@ -11,7 +11,6 @@ GREEN = "\033[92m"
 GRAY = "\033[90m"
 RESET = "\033[0m"
 
-
 def connect():
     try:
         return psycopg.connect(
@@ -101,10 +100,17 @@ def main():
             elif user_input == "":
                 continue
             elif user_input.lower().startswith("deleteproduct"):
-                print("Delete command received!")
+                try:
+                    product_id = int(user_input.split()[1])           
+                except ValueError:
+                    print("Please provide a valid product ID.")
+                    continue
+                except IndexError:
+                    print("Please provide a product ID to delete.")
+                    continue
+                print(f"The product you want to delete: {product_id}")
             else:
                 add_product(conn, user_input)
-
 
 if __name__ == "__main__":
     main()
