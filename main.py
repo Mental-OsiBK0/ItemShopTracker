@@ -1,6 +1,9 @@
-import getpass
+import os
 import sys
 import psycopg
+from dotenv import load_dotenv
+
+load_dotenv()
 
 RED = "\033[91m"
 YELLOW = "\033[93m"
@@ -10,14 +13,13 @@ RESET = "\033[0m"
 
 
 def connect():
-    password = getpass.getpass("PostgreSQL Password: ")
     try:
         return psycopg.connect(
-            host="localhost",
-            port=5432,
-            dbname="fortnite_bot",
-            user="postgres",
-            password=password,
+            host=os.getenv("DB_HOST"),
+            port=os.getenv("DB_PORT"),
+            dbname=os.getenv("DB_NAME"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
             autocommit=True,
         )
     except psycopg.OperationalError as e:
@@ -86,7 +88,7 @@ def main():
     conn = connect()
 
     print("Enter products as: Name, Price, YYYY-MM-DD")
-    print("Commands: ListProducts, Exit")
+    print("Commands: ListProducts, DeleteProduct <id>, Exit")
 
     with conn:
         while True:
@@ -98,6 +100,8 @@ def main():
                 list_products(conn)
             elif user_input == "":
                 continue
+            elif user_input.lower().startswith("deleteproduct"):
+                print("Delete command received!")
             else:
                 add_product(conn, user_input)
 
