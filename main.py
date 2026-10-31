@@ -1,5 +1,7 @@
 import os
 import sys
+from decimal import Decimal, InvalidOperation
+
 import psycopg
 from dotenv import load_dotenv
 
@@ -9,7 +11,44 @@ RED = "\033[91m"
 YELLOW = "\033[93m"
 GREEN = "\033[92m"
 GRAY = "\033[90m"
+CYAN = "\033[96m"
+BOLD = "\033[1m"
 RESET = "\033[0m"
+
+MAX_ID = 2_147_483_647
+TIMEZONE = "Europe/Istanbul"
+SHOP_RESET_TIME = "03:00+03:00"
+REQUIRED_ENV_VARS = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]
+
+
+def print_help():
+    print(f"""
+{BOLD}{CYAN}╔══════════════════════════════════════════════╗
+║               ItemShopTracker                ║
+╚══════════════════════════════════════════════╝{RESET}
+
+{BOLD}Add a product:{RESET}
+  Name, Price, YYYY-MM-DD
+  {GRAY}e.g. Black Knight, 200, 2026-11-05{RESET}
+
+{BOLD}Commands:{RESET}
+  {CYAN}ListProducts{RESET}         Show all products
+  {CYAN}DeleteProduct <id>{RESET}   Delete a product by id
+  {CYAN}Help{RESET}                 Show this screen
+  {CYAN}Exit{RESET}                 Quit the program
+
+{BOLD}Colors:{RESET}
+  {RED}■{RESET} Less than 1 day    {YELLOW}■{RESET} Less than 2 days
+  {GREEN}■{RESET} More than 2 days   {GRAY}■{RESET} Expired
+""")
+
+
+def check_env():
+    missing = [name for name in REQUIRED_ENV_VARS if not os.getenv(name)]
+    if missing:
+        print(f"Missing settings in .env: {', '.join(missing)}")
+        sys.exit(1)
+
 
 def connect():
     try:
@@ -20,6 +59,7 @@ def connect():
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASSWORD"),
             autocommit=True,
+            options=f"-c timezone={TIMEZONE}",
         )
     except psycopg.OperationalError as e:
         print(f"Could not connect to the database: {e}")
@@ -33,19 +73,64 @@ def add_product(conn, user_input):
         print("Please enter exactly 3 values separated by commas.")
         return
 
-    expires_at = f"{expires_date} 03:00+03:00"
+    if not name:
+        print("Product name cannot be empty.")
+        return
+
+    try:
+        price_value = Decimal(price)
+    except InvalidOperation:
+        print("Price must be a number.")
+        return
+
+    if not price_value.is_finite() or price_value < 0:
+        print("Price must be a positive number.")
+        return
+
+    expires_at = f"{expires_date} {SHOP_RESET_TIME}"
 
     try:
         with conn.transaction():
             with conn.cursor() as cur:
                 cur.execute(
                     "INSERT INTO products (name, price, expires_at) VALUES (%s, %s, %s) RETURNING id;",
-                    (name, price, expires_at),
+                    (name, price_value, expires_at),
                 )
                 new_id = cur.fetchone()[0]
         print(f"Product added with id {new_id}")
     except psycopg.DataError as e:
         print(f"Invalid value: {e}")
+
+
+def delete_product(conn, user_input):
+    parts = user_input.split()
+
+    if len(parts) != 2:
+        print("Usage: DeleteProduct <id>")
+        return
+
+    try:
+        product_id = int(parts[1])
+    except ValueError:
+        print("Please provide a valid product ID.")
+        return
+
+    if product_id < 1 or product_id > MAX_ID:
+        print("Please provide a valid product ID.")
+        return
+
+    with conn.transaction():
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM products WHERE id = %s;",
+                (product_id,),
+            )
+            deleted_count = cur.rowcount
+
+    if deleted_count == 0:
+        print(f"No product found with id {product_id}.")
+    else:
+        print(f"Product {product_id} deleted.")
 
 
 def list_products(conn):
@@ -84,33 +169,36 @@ def list_products(conn):
 
 
 def main():
+    check_env()
     conn = connect()
+    print("Type 'Help' to see commands.")
 
-    print("Enter products as: Name, Price, YYYY-MM-DD")
-    print("Commands: ListProducts, DeleteProduct <id>, Exit")
-
-    with conn:
+    try:
         while True:
             user_input = input("> ").strip()
 
-            if user_input.lower() == "exit":
-                break
-            elif user_input.lower() == "listproducts":
-                list_products(conn)
-            elif user_input == "":
+            if not user_input:
                 continue
-            elif user_input.lower().startswith("deleteproduct"):
-                try:
-                    product_id = int(user_input.split()[1])           
-                except ValueError:
-                    print("Please provide a valid product ID.")
-                    continue
-                except IndexError:
-                    print("Please provide a product ID to delete.")
-                    continue
-                print(f"The product you want to delete: {product_id}")
+
+            command = user_input.split()[0].lower()
+
+            if command == "exit":
+                break
+            elif command == "listproducts":
+                list_products(conn)
+            elif command == "help":
+                print_help()
+            elif command == "deleteproduct":
+                delete_product(conn, user_input)
             else:
                 add_product(conn, user_input)
+    except (KeyboardInterrupt, EOFError):
+        print("\nGoodbye!")
+    except psycopg.OperationalError:
+        print("Lost connection to the database. Please restart the program.")
+    finally:
+        conn.close()
+
 
 if __name__ == "__main__":
     main()
