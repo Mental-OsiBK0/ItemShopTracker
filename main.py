@@ -59,6 +59,7 @@ def connect():
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASSWORD"),
             autocommit=True,
+            sslmode=os.getenv("DB_SSLMODE", "require"),
             options=f"-c timezone={TIMEZONE}",
         )
     except psycopg.OperationalError as e:
@@ -170,7 +171,7 @@ def list_products(conn):
 
 def main():
     check_env()
-    conn = connect()
+    conn =  connect()
     print("Type 'Help' to see commands.")
 
     try:
