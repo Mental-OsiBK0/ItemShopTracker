@@ -135,6 +135,13 @@ def delete_product(conn, user_input):
         print(f"Product {product_id} deleted.")
 
 
+def format_price(price):
+    # V-Bucks prices are whole numbers, so hide ".00" (keep decimals if there are any)
+    if price == price.to_integral_value():
+        return f"{price:,.0f}"
+    return f"{price:,.2f}"
+
+
 def list_products(conn):
     with conn.cursor() as cur:
         cur.execute(
@@ -155,7 +162,7 @@ def list_products(conn):
 
         if seconds_left <= 0:
             ago = -remaining
-            print(f"{GRAY}[{product_id}] {name} | {price} V-BUCKS | expired {ago.days}d {ago.seconds // 3600}h ago | {expires_at:%Y-%m-%d %H:%M}{RESET}")
+            print(f"{GRAY}[{product_id}] {name} | {format_price(price)} V-BUCKS | expired {ago.days}d {ago.seconds // 3600}h ago | {expires_at:%Y-%m-%d %H:%M}{RESET}")
             continue
 
         days_left = seconds_left / 86400
@@ -167,7 +174,7 @@ def list_products(conn):
         else:
             color = GREEN
 
-        print(f"{color}[{product_id}] {name} | {price} V-BUCKS | {remaining.days}d {remaining.seconds // 3600}h left | {expires_at:%Y-%m-%d %H:%M}{RESET}")
+        print(f"{color}[{product_id}] {name} | {format_price(price)} V-BUCKS | {remaining.days}d {remaining.seconds // 3600}h left | {expires_at:%Y-%m-%d %H:%M}{RESET}")
 
 
 def main():
