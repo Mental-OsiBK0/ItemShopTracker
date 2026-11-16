@@ -78,7 +78,7 @@ Verified on the server: both users connected with their own roles, over SSL:
 > Black Knight, 200, 2026-11-10
 Product added with id 1
 > ListProducts
-[1] Black Knight | 200.00 TL | 6d 8h left | 2026-11-10 03:00
+[1] Black Knight | 200.00 V-BUCKS | 6d 8h left | 2026-11-10 03:00
 > DeleteProduct 1
 Product 1 deleted.
 ```
