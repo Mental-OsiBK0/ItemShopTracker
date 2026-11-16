@@ -60,6 +60,7 @@ def connect():
             password=os.getenv("DB_PASSWORD"),
             autocommit=True,
             sslmode=os.getenv("DB_SSLMODE", "require"),
+            connect_timeout=10,
             options=f"-c timezone={TIMEZONE}",
         )
     except psycopg.OperationalError as e:
@@ -85,7 +86,7 @@ def add_product(conn, user_input):
         return
 
     if not price_value.is_finite() or price_value < 0:
-        print("Price must be a positive number.")
+        print("Price must be 0 or more.")
         return
 
     expires_at = f"{expires_date} {SHOP_RESET_TIME}"
@@ -183,16 +184,25 @@ def main():
 
             command = user_input.split()[0].lower()
 
-            if command == "exit":
-                break
-            elif command == "listproducts":
-                list_products(conn)
-            elif command == "help":
-                print_help()
-            elif command == "deleteproduct":
-                delete_product(conn, user_input)
-            else:
-                add_product(conn, user_input)
+            try:
+                # A comma means a product is being added, so a name like
+                # "Exit Strategy" is not mistaken for a command.
+                if "," in user_input:
+                    add_product(conn, user_input)
+                elif command == "exit":
+                    break
+                elif command == "listproducts":
+                    list_products(conn)
+                elif command == "help":
+                    print_help()
+                elif command == "deleteproduct":
+                    delete_product(conn, user_input)
+                else:
+                    add_product(conn, user_input)
+            except psycopg.OperationalError:
+                raise
+            except psycopg.Error as e:
+                print(f"Database error: {e}")
     except (KeyboardInterrupt, EOFError):
         print("\nGoodbye!")
     except psycopg.OperationalError:
