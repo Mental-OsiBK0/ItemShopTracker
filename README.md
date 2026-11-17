@@ -1,5 +1,7 @@
 # ItemShopTracker
 
+[![CI](https://github.com/Mental-OsiBK0/ItemShopTracker/actions/workflows/ci.yml/badge.svg)](https://github.com/Mental-OsiBK0/ItemShopTracker/actions/workflows/ci.yml)
+
 A command-line tool for tracking Fortnite Item Shop products and how long they have left in the shop. Products are stored in a PostgreSQL database hosted on AWS, so several users can share the same live list from different computers.
 
 ## Features
