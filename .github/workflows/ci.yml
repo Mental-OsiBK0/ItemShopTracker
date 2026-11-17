@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Check Python syntax
+        run: python3 -m py_compile main.py
+
+      - name: Build Docker image
+        run: docker build -t itemshoptracker .
