@@ -74,11 +74,22 @@ Verified on the server: both users connected with their own roles, over SSL:
 
 ## Usage
 
+## Run with Docker
+
+If you prefer not to install Python, you can run the app in a container:
+
+```
+docker build -t itemshoptracker .
+docker run -it --rm --env-file .env itemshoptracker
+```
+
+The image does not contain any credentials. `.env` is passed in when the container starts and is excluded from the build by `.dockerignore`. The app runs as a non-root user inside the container.
+
 ```
 > Black Knight, 200, 2026-11-10
 Product added with id 1
 > ListProducts
-[1] Black Knight | 200.00 V-BUCKS | 6d 8h left | 2026-11-10 03:00
+[1] Black Knight | 200 V-BUCKS | 6d 8h left | 2026-11-10 03:00
 > DeleteProduct 1
 Product 1 deleted.
 ```
